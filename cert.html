@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校准证书查询</title>
+<script src="data.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
+  .header { background: #1a73e8; color: white; padding: 16px; text-align: center; }
+  .header h1 { font-size: 18px; }
+  .card { background: white; margin: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .card-title { background: #e8f0fe; color: #1a73e8; padding: 12px 16px; font-weight: bold; font-size: 14px; }
+  .row { display: flex; border-bottom: 1px solid #f0f0f0; padding: 12px 16px; }
+  .row:last-child { border-bottom: none; }
+  .label { color: #888; font-size: 13px; width: 90px; flex-shrink: 0; }
+  .value { color: #333; font-size: 13px; font-weight: 500; }
+  .valid { color: #34a853; font-weight: bold; }
+  .expired { color: #ea4335; font-weight: bold; }
+  .not-found { text-align: center; padding: 60px 20px; color: #888; }
+  .not-found .icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="header"><h1>📋 校准证书查询</h1></div>
+<div id="content"></div>
+<script>
+  var id = new URLSearchParams(window.location.search).get('id');
+  var el = document.getElementById('content');
+  if (id && certData[id]) {
+    var d = certData[id];
+    var today = new Date().toISOString().slice(0,10);
+    var isValid = d.yxqz >= today;
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-title">📄 证书基本信息</div>
+        <div class="row"><span class="label">证书编号</span><span class="value">${d.zsbh}</span></div>
+        <div class="row"><span class="label">器具名称</span><span class="value">${d.yqmc}</span></div>
+        <div class="row"><span class="label">型号规格</span><span class="value">${d.xhgg}</span></div>
+        <div class="row"><span class="label">出厂编号</span><span class="value">${d.ccbh}</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏭 单位信息</div>
+        <div class="row"><span class="label">送检单位</span><span class="value">${d.qymc}</span></div>
+        <div class="row"><span class="label">制造单位</span><span class="value">${d.zzcj}</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">✅ 检定信息</div>
+        <div class="row"><span class="label">检定日期</span><span class="value">${d.jcrq}</span></div>
+        <div class="row"><span class="label">有效期至</span><span class="value ${isValid?'valid':'expired'}">${d.yxqz} ${isValid?'（有效）':'（已过期）'}</span></div>
+        <div class="row"><span class="label">检定员</span><span class="value">${d.jdry}</span></div>
+        <div class="row"><span class="label">核验员</span><span class="value">${d.shry}</span></div>
+        <div class="row"><span class="label">批准人</span><span class="value">${d.sqry}</span></div>
+      </div>`;
+  } else {
+    el.innerHTML = `<div class="not-found"><div class="icon">🔍</div><p>未找到证书编号</p><p style="margin-top:8px;font-size:12px;">ID: ${id||'无'}</p></div>`;
+  }
+</script>
+</body>
+</html>
