@@ -2,60 +2,376 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>校准证书查询</title>
-<script src="data.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<title>计量证书查询</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+  :root {
+    --blue: #1565C0;
+    --blue-light: #1E88E5;
+    --blue-bg: #E3F2FD;
+    --header-h: 50px;
+    --red: #D32F2F;
+    --green: #2E7D32;
+    --border: #E0E0E0;
+    --text: #212121;
+    --text-sub: #757575;
+    --bg: #F5F7FA;
+    --white: #FFFFFF;
+    --shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
-  .header { background: #1a73e8; color: white; padding: 16px; text-align: center; }
-  .header h1 { font-size: 18px; }
-  .card { background: white; margin: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  .card-title { background: #e8f0fe; color: #1a73e8; padding: 12px 16px; font-weight: bold; font-size: 14px; }
-  .row { display: flex; border-bottom: 1px solid #f0f0f0; padding: 12px 16px; }
-  .row:last-child { border-bottom: none; }
-  .label { color: #888; font-size: 13px; width: 90px; flex-shrink: 0; }
-  .value { color: #333; font-size: 13px; font-weight: 500; }
-  .valid { color: #34a853; font-weight: bold; }
-  .expired { color: #ea4335; font-weight: bold; }
-  .not-found { text-align: center; padding: 60px 20px; color: #888; }
-  .not-found .icon { font-size: 48px; margin-bottom: 12px; }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--blue);
+    height: var(--header-h);
+    display: flex; align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .header .back-btn {
+    display: flex; align-items: center; gap: 4px;
+    color: #fff; text-decoration: none;
+    padding: 0 14px; height: 100%;
+    font-size: 14px; font-weight: 500;
+    transition: background .15s;
+  }
+  .header .back-btn:active { background: rgba(255,255,255,.15); }
+  .header .back-btn svg { width:18px; height:18px; fill:none; stroke:#fff; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .header h1 {
+    flex: 1; text-align: center;
+    color: #fff; font-size: 17px; font-weight: 700;
+    letter-spacing: .5px;
+    margin-right: 52px; /* balance back btn */
+  }
+
+  /* ── Main ── */
+  .main { padding: 14px 12px 32px; max-width: 600px; margin: 0 auto; }
+
+  /* ── Search card ── */
+  .search-card {
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .search-card .hint {
+    background: var(--blue-bg);
+    color: var(--blue);
+    text-align: center;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 1px solid #BBDEFB;
+  }
+  .search-input-row {
+    padding: 12px 12px 0;
+  }
+  .search-input-row input {
+    width: 100%;
+    height: 44px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 0 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    background: #FAFAFA;
+  }
+  .search-input-row input:focus {
+    border-color: var(--blue-light);
+    box-shadow: 0 0 0 3px rgba(30,136,229,.12);
+    background: #fff;
+  }
+  .search-btn-row {
+    display: flex; gap: 10px;
+    padding: 12px;
+  }
+  .btn {
+    flex: 1;
+    height: 42px;
+    border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+    letter-spacing: .3px;
+  }
+  .btn:active { transform: scale(.97); filter: brightness(.93); }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-secondary { background: #EEF2FF; color: var(--blue); border: 1.5px solid #C5CAE9; }
+
+  /* error msg */
+  .errmsg {
+    color: var(--red);
+    font-size: 13px;
+    text-align: center;
+    padding: 0 12px 12px;
+    display: none;
+  }
+
+  /* ── Result card ── */
+  .result-card {
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: none;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .section-title {
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #BBDEFB;
+    letter-spacing: .3px;
+  }
+
+  .field-list { list-style: none; }
+  .field-item {
+    display: flex; align-items: center;
+    padding: 0;
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .field-item:last-child { border-bottom: none; }
+  .field-label {
+    width: 92px; flex-shrink: 0;
+    color: var(--text-sub);
+    font-size: 13px;
+    padding: 12px 0 12px 14px;
+    line-height: 1.4;
+  }
+  .field-value {
+    flex: 1;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 14px 12px 0;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+  .field-value.valid   { color: var(--green); }
+  .field-value.expired { color: var(--red); }
+
+  /* divider between sections */
+  .section-gap { height: 1px; background: var(--border); }
+
+  /* ── Footer ── */
+  .page-footer {
+    text-align: center;
+    color: #BDBDBD;
+    font-size: 12px;
+    margin-top: 28px;
+    padding-bottom: 12px;
+  }
 </style>
 </head>
 <body>
-<div class="header"><h1>📋 校准证书查询</h1></div>
-<div id="content"></div>
+
+<!-- Header -->
+<div class="header">
+  <a class="back-btn" onclick="window.history.back(); return false;" href="#">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    返回
+  </a>
+  <h1>计量证书查询</h1>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Search card -->
+  <div class="search-card">
+    <div class="hint">请输入计量证书编号或证书条码</div>
+    <div class="search-input-row">
+      <input id="cx" type="text" placeholder="证书编号 / 条码" inputmode="text"
+             onkeydown="if(event.key==='Enter') doQuery()" />
+    </div>
+    <div class="search-btn-row">
+      <button class="btn btn-primary"  onclick="doQuery()">查询</button>
+      <button class="btn btn-secondary" onclick="showResult()">显示证书内容</button>
+    </div>
+    <div class="errmsg" id="errmsg">⚠ 未找到对应证书，请核对编号后重试</div>
+  </div>
+
+  <!-- Result card -->
+  <div class="result-card" id="resultCard">
+
+    <div class="section-title">📋 证书基本信息</div>
+    <ul class="field-list">
+      <li class="field-item">
+        <span class="field-label">证书编号</span>
+        <span class="field-value" id="f_zsbh"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">计量器具名称</span>
+        <span class="field-value" id="f_yqmc"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">型号 / 规格</span>
+        <span class="field-value" id="f_xhgg"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">出厂编号</span>
+        <span class="field-value" id="f_ccbh"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">管理编号</span>
+        <span class="field-value" id="f_zqdjdj"></span>
+      </li>
+    </ul>
+
+    <div class="section-gap"></div>
+    <div class="section-title">🏭 单位信息</div>
+    <ul class="field-list">
+      <li class="field-item">
+        <span class="field-label">送检单位</span>
+        <span class="field-value" id="f_qymc"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">制造单位</span>
+        <span class="field-value" id="f_zzcj"></span>
+      </li>
+    </ul>
+
+    <div class="section-gap"></div>
+    <div class="section-title">✅ 检定信息</div>
+    <ul class="field-list">
+      <li class="field-item">
+        <span class="field-label">检校日期</span>
+        <span class="field-value" id="f_jcrq"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">有效期至</span>
+        <span class="field-value" id="f_yxqz"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">检定员</span>
+        <span class="field-value" id="f_jdry"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">核验员</span>
+        <span class="field-value" id="f_shry"></span>
+      </li>
+      <li class="field-item">
+        <span class="field-label">批准人</span>
+        <span class="field-value" id="f_sqry"></span>
+      </li>
+    </ul>
+
+  </div><!-- /result-card -->
+
+  <div class="page-footer">© 计量证书查询系统</div>
+</div><!-- /main -->
+
+<!-- ────────── 数据层 ────────── -->
+<script src="data.js"></script>
+
 <script>
-  var id = new URLSearchParams(window.location.search).get('id');
-  var el = document.getElementById('content');
-  if (id && certData[id]) {
-    var d = certData[id];
-    var today = new Date().toISOString().slice(0,10);
-    var isValid = d.yxqz >= today;
-    el.innerHTML = `
-      <div class="card">
-        <div class="card-title">📄 证书基本信息</div>
-        <div class="row"><span class="label">证书编号</span><span class="value">${d.zsbh}</span></div>
-        <div class="row"><span class="label">器具名称</span><span class="value">${d.yqmc}</span></div>
-        <div class="row"><span class="label">型号规格</span><span class="value">${d.xhgg}</span></div>
-        <div class="row"><span class="label">出厂编号</span><span class="value">${d.ccbh}</span></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🏭 单位信息</div>
-        <div class="row"><span class="label">送检单位</span><span class="value">${d.qymc}</span></div>
-        <div class="row"><span class="label">制造单位</span><span class="value">${d.zzcj}</span></div>
-      </div>
-      <div class="card">
-        <div class="card-title">✅ 检定信息</div>
-        <div class="row"><span class="label">检定日期</span><span class="value">${d.jcrq}</span></div>
-        <div class="row"><span class="label">有效期至</span><span class="value ${isValid?'valid':'expired'}">${d.yxqz} ${isValid?'（有效）':'（已过期）'}</span></div>
-        <div class="row"><span class="label">检定员</span><span class="value">${d.jdry}</span></div>
-        <div class="row"><span class="label">核验员</span><span class="value">${d.shry}</span></div>
-        <div class="row"><span class="label">批准人</span><span class="value">${d.sqry}</span></div>
-      </div>`;
-  } else {
-    el.innerHTML = `<div class="not-found"><div class="icon">🔍</div><p>未找到证书编号</p><p style="margin-top:8px;font-size:12px;">ID: ${id||'无'}</p></div>`;
+/* 若 data.js 未加载（本地预览），用示例数据兜底 */
+if (typeof certData === 'undefined') {
+  var certData = {
+    "2024-YB-001": {
+      zsbh:"2024-YB-001", yqmc:"弹簧管压力表", xhgg:"Y-100, 0~1.6MPa",
+      ccbh:"SN20240101", zqdjdj:"GL-2024-001", qymc:"XX化工厂",
+      zzcj:"上海仪表厂", jcrq:"2024-01-15", yxqz:"2025-01-14",
+      jdry:"张工", shry:"李工", sqry:"王主任"
+    },
+    "2024-YB-002": {
+      zsbh:"2024-YB-002", yqmc:"压力变送器", xhgg:"EJA110A, 0~10MPa",
+      ccbh:"SN20240202", zqdjdj:"GL-2024-002", qymc:"YY石化",
+      zzcj:"横河电机", jcrq:"2024-02-10", yxqz:"2025-02-09",
+      jdry:"李工", shry:"王工", sqry:"赵主任"
+    }
+  };
+}
+
+var currentData = null;
+
+/* 页面加载时检查 URL 参数 ?id=xxx */
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+  if (id) {
+    document.getElementById('cx').value = id;
+    doQuery();
   }
+})();
+
+function set(id, val) { document.getElementById(id).textContent = val || '—'; }
+
+function doQuery() {
+  var id = document.getElementById('cx').value.trim();
+  var errmsg = document.getElementById('errmsg');
+  var card   = document.getElementById('resultCard');
+
+  errmsg.style.display = 'none';
+  card.style.display   = 'none';
+  currentData = null;
+
+  if (!id) { errmsg.textContent = '⚠ 请输入证书编号'; errmsg.style.display='block'; return; }
+
+  var d = certData[id];
+  if (!d) { errmsg.textContent = '⚠ 未找到证书「'+id+'」，请核对编号后重试'; errmsg.style.display='block'; return; }
+
+  currentData = d;
+  showResult();
+}
+
+function showResult() {
+  if (!currentData) { doQuery(); return; }
+  var d = currentData;
+  var card = document.getElementById('resultCard');
+
+  set('f_zsbh',   d.zsbh);
+  set('f_yqmc',   d.yqmc);
+  set('f_xhgg',   d.xhgg);
+  set('f_ccbh',   d.ccbh);
+  set('f_zqdjdj', d.zqdjdj);
+  set('f_qymc',   d.qymc);
+  set('f_zzcj',   d.zzcj);
+  set('f_jcrq',   d.jcrq);
+  set('f_jdry',   d.jdry);
+  set('f_shry',   d.shry);
+  set('f_sqry',   d.sqry);
+
+  /* 有效期状态 */
+  var yxEl = document.getElementById('f_yxqz');
+  if (d.yxqz) {
+    var today = new Date().toISOString().slice(0,10);
+    var valid = d.yxqz >= today;
+    yxEl.textContent = d.yxqz + (valid ? '（有效）' : '（已过期）');
+    yxEl.className   = 'field-value ' + (valid ? 'valid' : 'expired');
+  } else {
+    yxEl.textContent = '—';
+    yxEl.className   = 'field-value';
+  }
+
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior:'smooth', block:'start' });
+}
 </script>
 </body>
 </html>
